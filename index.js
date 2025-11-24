@@ -1,5 +1,24 @@
+require('dotenv').config();
 const express = require('express');
+
 const Joi = require('joi');
+
+const sql = require('mssql');
+
+const sqlConfig = {
+    server: process.env.SERVER_NAME,
+    database: process.env.DB_NAME,
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    options: {
+        encrypt: false,
+        trustServerCertificate: true,
+    },
+    driver: 'tedious'
+};
+
+
+
 
 const app = express();
 app.use(express.json());
@@ -21,7 +40,17 @@ const genres = [
 
 //display all genres
 app.get('/api/genres/', (req, res) => {
-    res.send(genres);
+    // res.send(genres);
+    sql.connect(sqlConfig, function (err) {
+        if (err) console.log(err);
+        else {
+            var request = new sql.Request();
+            request.query('SELECT * FROM movies', function (err, recordset) {
+                if (err) res.status(400).send(err)
+                else res.send(recordset);
+            });
+        }
+    });
 });
 
 //display single genre
@@ -30,7 +59,17 @@ app.get('/api/genres/:id', (req, res) => {
     if (!g) {
         return res.status(404).send('Genre with that ID doesnt exist');
     }
-    res.send(g);
+    sql.connect(sqlConfig, (err) => {
+        if (err) {
+            res.status(400).send(err);
+        }
+        else {
+            var request = new sql.Request();
+            request.query('SELECT * FROM Users WHERE User_ID = ' + req.params.id, (err, recordset) => {
+                if (err) res.status(400).send(err);
+                else res.send(recordset);
+        });
+    }});
 });
 
 //add a new genre
